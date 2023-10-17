@@ -1,0 +1,3 @@
+{% load markdown_deux_tags %} {% for i in posts %}
+<p>{{ i.content | markdown }}</p>
+{% endfor %}
