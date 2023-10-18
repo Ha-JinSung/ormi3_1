@@ -1,0 +1,427 @@
+admin 페이지 재설계
+
+
+django-admin startproject tutorialdjango .
+python manage.py migrate
+
+# settings.py에서 접속할 수 있는 사람 설정
+ALLOWED_HOSTS = ['*'] # 28번째 줄에 접속할 수 있는 사람을 모든 사람으로 변경
+
+python manage.py startapp blog
+
+# settings.py 에서 33번째 라인 수정
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'blog',
+]
+
+###################################
+# blog > models.py
+
+from django.db import models
+
+class Post(models.Model):
+    title = models.CharField(max_length=100)
+    content = models.TextField()
+    head_image = models.ImageField(
+        upload_to='blog/images/%Y/%m/%d/', blank=True)
+    file_upload = models.FileField(
+        upload_to='blog/files/%Y/%m/%d/', blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateField(auto_now=True)
+
+    def __str__(self):
+        return self.title
+
+###################################
+
+python manage.py makemigrations
+python manage.py migrate
+
+###################################
+
+python manage.py createsuperuser
+
+leehojun
+leehojun@gmail.com
+이호준123!@
+###################################
+
+이미지가 실제 저장될 폴더 설정입니다.
+settings.py에 맨 마지막 줄에 추가해주세요.
+
+MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = '/media/'
+
+###################################
+# 언어와 시간 설정
+LANGUAGE_CODE = 'ko-kr'
+
+TIME_ZONE = 'Asia/Seoul'
+
+###################################
+# 템플릿 설정
+TEMPLATES = [
+    {
+        ... 생략 ...
+        'DIRS': [BASE_DIR / 'templates'],
+
+###################################
+# tutorialdjango > urls.py
+from django.contrib import admin
+from django.urls import path, include
+from django.conf.urls.static import static
+from django.conf import settings
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('blog/', include('blog.urls')),
+]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+###################################
+# blog > urls.py
+
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('', views.postlist, name='postlist'),
+]
+
+###################################
+# blog > views.py
+
+from django.shortcuts import render
+from .models import Post
+
+def postlist(request):
+    posts = Post.objects.all()
+    return render(request, 'blog/postlist.html', {'posts':posts})
+
+###################################
+blog > templates > blog > postlist.html
+
+비어있는 파일로 만들어주세요!
+
+###################################
+
+blog > admin.py
+
+from django.contrib import admin
+from .models import Post
+
+admin.site.register(Post)
+
+###################################
+# templates > admin > base_site.html
+# https://github.com/django/django 참조
+# https://github.com/django/django/tree/main/django/contrib/admin 참조
+# https://github.com/django/django/blob/main/django/contrib/admin/templates/admin/base_site.html 이게 base_site의 기초틀
+
+from django.contrib import admin
+
+urlpatterns = [
+    path('admin/', admin.site.urls), # admin.site.urls는 어딜 가리킬까?
+]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+###################################
+# templates > admin > base_site.html
+
+{% extends "admin/base.html" %} {% block title %} {{ title }} | Licat Site {% endblock %} {% block branding %}
+<h1 id="site-name"><a href="{% url 'admin:index' %}">Licat Site Test</a></h1>
+{% endblock %} {% block messages %} {% if messages %}
+<ul class="messagelist">{% for message in messages %}
+    <li {% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}</li>
+    {% endfor %}</ul>
+{% endif %} {% endblock messages %} {% block nav-global %} {% endblock %} {% block sidebar %}
+<div class="module">
+    <h2>My Sidebar</h2>
+    <ul>
+        <li><a href="#">Licat Link 1</a></li>
+        <li><a href="#">Licat Link 2</a></li>
+        <li><a href="#">Licat Link 3</a></li>
+    </ul>
+</div>
+{% endblock %} {% block footer %}
+<div id="footer">Licat Hello World Test!!</div>
+{% endblock %}
+
+###################################
+# blog > admin.py
+# https://github.com/django/django/blob/4a5048b036fd9e965515e31fdd70b0af72655cba/django/contrib/admin/sites.py#L45
+
+from django.contrib import admin
+from django.contrib.admin import AdminSite
+from django.utils.translation import gettext_lazy as _
+from .models import Post
+
+
+class MyAdminSite(AdminSite):
+    # site_title = _('My Site APP Custom Admin')
+    # site_header = _('My Site Administration')
+    index_title = _('Dashboard Test!!')
+
+
+class PostAdmin(admin.ModelAdmin):
+    list_display = ['id', 'title', 'content_size', 'created_at', 'updated_at']
+
+    def content_size(self, post):
+        return '{}글자'.format(len(post.content))
+    content_size.short_description = '글자수'
+
+
+myadminsite = MyAdminSite(name='myadmin')
+myadminsite.register(Post, PostAdmin)
+###################################
+
+ urls.py
+
+from django.contrib import admin
+from django.urls import path, include
+from django.conf.urls.static import static
+from django.conf import settings
+from blog.admin import myadminsite
+
+urlpatterns = [
+    path('admin/', myadminsite.urls),
+    path('blog/', include('blog.urls')),
+]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+###################################
+#원상복구
+
+admin.py
+from django.contrib import admin
+from .models import Post
+
+admin.site.register(Post)
+
+urls.py
+from django.contrib import admin
+from django.urls import path, include
+from django.conf.urls.static import static
+from django.conf import settings
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('blog/', include('blog.urls')),
+]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+###################################
+
+
+###################################
+
+pip install djangorestframework
+pip install django-cors-headers
+
+###################################
+
+views.py
+
+from django.shortcuts import render
+from .models import Post
+
+def postlist(request):
+    posts = [
+        {'title':'1', 'content':'11'},
+        {'title':'2', 'content':'22'},
+        {'title':'3', 'content':'33'},
+    ]
+    return render(request, 'blog/postlist.html', {'posts':posts})
+
+
+###################################
+
+# settings.py 추가
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    # django lib app
+    'rest_framework',
+    'corsheaders',
+    # custom app
+    'blog',
+]
+
+MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware', #최상단 추가
+    ## 생략
+]
+
+CORS_ORIGIN_ALLOW_ALL=True
+CORS_ALLOW_CREDENTIALS=True
+
+###################################
+
+# blog > views.py
+
+from django.shortcuts import render
+from .models import Post
+from django.http import JsonResponse
+
+# def postlist(request):
+#     posts = Post.objects.all()
+#     return render(request, 'blog/postlist.html', {'posts':posts})
+
+
+# def postlist(request):
+#     posts = [
+#         {'title':'1', 'content':'11'},
+#         {'title':'2', 'content':'22'},
+#         {'title':'3', 'content':'33'},
+#     ]
+#     return render(request, 'blog/postlist.html', {'posts':posts})
+
+
+def postlist(request):
+    posts = [
+        {'title':'1', 'content':'11'},
+        {'title':'2', 'content':'22'},
+        {'title':'3', 'content':'33'},
+    ]
+    return JsonResponse(posts, safe=False) # 딕션너리 이외의 것을 받을땐 safe=False
+
+###################################
+# django 서버와 완전히 다른 컴퓨터 또는 다른 서버 또는 다른 폴더에서 작동되어야 한다.
+# 별개로 작동되며 이게 마이크로식 방식이다
+# django서버는 AWS lightsail, FE서버는 github pages (연동하기 굉장히 어렵다)
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+</head>
+<body>
+    <div id="data"></div>
+    <script>
+        // fetch로 http://127.0.0.1:8000/blog/ 데이터 가져와서 출력
+        fetch('http://127.0.0.1:8000/blog/')
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            document.getElementById('data').innerHTML = data;
+        });
+    </script>
+</body>
+</html>
+###################################
+
+# DRF 테스트
+# blog > views.py
+
+from django.shortcuts import render
+from .models import Post
+# rest_framework 추가 후 추가된 코드
+from rest_framework import viewsets, permissions, generics, status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.decorators import api_view
+from django.http import JsonResponse
+
+# FBV 사용 방식
+@api_view(['GET']) # ['GET', 'POST'] 도 가능하다
+def postlist(request):
+    posts = [
+        {'title':'1', 'content':'11'},
+        {'title':'2', 'content':'22'},
+        {'title':'3', 'content':'33'},
+    ]
+    serializer = posts # 직렬화 하는 단계
+    return Response(serializer) #Response로 반환 되었을때 데이터를 읽을수도 있고, POST를 보낼수 있다.
+
+###################################
+
+# blog > views.py
+
+# CBV 사용 방식
+class Cbv(APIView):
+    def get(self, request):
+        posts = [
+            {'title':'1', 'content':'11'},
+            {'title':'2', 'content':'22'},
+            {'title':'3', 'content':'33'},
+        ]
+        serializer = posts
+        return Response(serializer)  
+postlist = Cbv.as_view()
+###################################
+FE > sample.html에서 
+
+F12 콘솔로 확인
+
+###################################
+# blog > serializers.py
+
+from rest_framework import serializers
+from .models import Post
+
+class PostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Post
+        fields = '__all__'
+
+
+###################################
+
+# blog > views.py
+
+from django.shortcuts import render
+from .models import Post
+from django.http import JsonResponse
+# rest_framework 추가 후 추가된 코드
+from rest_framework import viewsets, permissions, generics, status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.decorators import api_view
+from .serializers import PostSerializer
+
+
+@api_view(['GET', 'POST'])
+def postlist(request):
+    if request.method == 'GET':
+        postlist = Post.objects.all()
+        serializer = PostSerializer(postlist, many=True) # 다수의 Queryset을 넘길 때는 many=True
+        return Response(serializer.data)
+    elif request.method == 'POST':
+        serializer = PostSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+###################################
+# FE > form.html
+
+<form action="http://127.0.0.1:8000/blog/" method="post">
+    <input type="text" name="title" placeholder="제목">
+    <input type="text" name="content" placeholder="내용">
+    <input type="submit" value="제출">
+</form>
+###################################
+###################################
+###################################
+###################################
+###################################
+
