@@ -1,0 +1,194 @@
+# 데이터베이스 생성
+# vscode
+# models.py
+
+from django.db import models
+
+class BookInfo(models.Model):
+    title = models.CharField(max_length = 100)
+    price = models.IntegerField()
+    author = models.CharField(max_length = 20)
+
+    def __str__(self):
+        return self.title
+
+
+
+#####################################
+
+# 크롤링
+# colab
+import requests
+from bs4 import BeautifulSoup
+
+paullab_url = 'https://paullab.co.kr/bookservice/'
+response = requests.get(paullab_url)
+response.encoding = 'utf-8'
+html = response.text
+
+soup = BeautifulSoup(html, 'html.parser')
+
+book_list = soup.select('.book_name')     
+book_info = soup.select('.book_info')
+
+# 책 제목
+book_title = []
+book_list = soup.select('.book_name')   
+for book in book_list:
+    book_title.append(book.text)
+
+# 책 가격, 저자
+book_price = []
+book_author = []
+
+tmp = 0
+for book in book_info:
+    if tmp == 0:
+        price = book.text[4:]
+        if price == '무료':
+            book_price.append(0)
+        else:
+            book_price.append(int(price.replace('원','').replace(',','')))
+        tmp = 1
+    elif tmp == 1:
+        book_author.append(book.text[4:])
+        tmp = 2
+    elif tmp == 2: # info에 책 정보는 필요 없으므로 skip
+        tmp = 0
+
+
+#####################################
+
+# 크롤링한 데이터 넣기
+# colab
+import sqlite3
+
+# 데이터베이스에 연결
+conn = sqlite3.connect('db.sqlite3')
+
+# 커서 생성
+cursor = conn.cursor()
+
+# 데이터 삽입
+for i in range(len(book_title)):
+    cursor.execute(f'INSERT INTO blog_bookinfo VALUES ({i+1}, "{book_title[i]}", {book_price[i]}, "{book_author[i]}")')
+
+# 커밋(변경 사항 저장)
+conn.commit()
+
+# 연결 닫기
+conn.close()
+
+#####################################
+
+# vscode
+# JSON으로 출력
+# python manage.py dumpdata blog.bookinfo --indent 2 > output.json
+
+#####################################
+
+
+JSON
+
+[
+{
+  "model": "blog.bookinfo",
+  "pk": 1,
+  "fields": {
+    "title": "메모혁신 Notion(노션) 활용 가이드",
+    "price": 7000,
+    "author": "이호준, 이준호, 김혜원, 김유진, 차경림, 김진, 현지연, 정승한"
+  }
+},
+{
+  "model": "blog.bookinfo",
+  "pk": 2,
+  "fields": {
+    "title": "이력서 작성 가이드",
+    "price": 10000,
+    "author": "강혜진, 김유진, 김혜원, 김진, 이범재, 이호준, 원유선, 박누리, 차경림, 최원범, 한재현"
+  }
+},
+{
+  "model": "blog.bookinfo",
+  "pk": 3,
+  "fields": {
+    "title": "제주코딩베이스캠프 Code Festival: Python 100제 1부",
+    "price": 0,
+    "author": "이호준, 강민정, 김유진, 정윤하, 최원범"
+  }
+},
+{
+  "model": "blog.bookinfo",
+  "pk": 4,
+  "fields": {
+    "title": "튜토리얼로 배우는 HTML&CSS",
+    "price": 4900,
+    "author": "이호준, 박민균, 양지혜, 정민준, 박소영, 전유빈"
+  }
+},
+{
+  "model": "blog.bookinfo",
+  "pk": 5,
+  "fields": {
+    "title": "코딩도장 튜토리얼로 배우는 Python 1편 object",
+    "price": 3000,
+    "author": "이호준, 정민준, 배희성, 김덕주, 한승협"
+  }
+},
+{
+  "model": "blog.bookinfo",
+  "pk": 6,
+  "fields": {
+    "title": "코딩도장 튜토리얼로 배우는 python 2편 제어문",
+    "price": 4900,
+    "author": "이호준, 우지훈, 박소영, 허재영"
+  }
+},
+{
+  "model": "blog.bookinfo",
+  "pk": 7,
+  "fields": {
+    "title": "코딩도장 튜토리얼로 배우는 Python 문제풀이",
+    "price": 0,
+    "author": "이호준, 전유빈, 김태범, 한승협, 김혜원, 강민정"
+  }
+},
+{
+  "model": "blog.bookinfo",
+  "pk": 8,
+  "fields": {
+    "title": "타노스의 건틀릿 알고리즘 With Python",
+    "price": 0,
+    "author": "이호준, 한승협, 강민정, 신민욱"
+  }
+},
+{
+  "model": "blog.bookinfo",
+  "pk": 9,
+  "fields": {
+    "title": "xlsxwriter 튜토리얼로 배우는 Python 엑셀 프로그래밍",
+    "price": 0,
+    "author": "이호준, 강상권, 오재원, 전진환, 문형철, 이현창"
+  }
+},
+{
+  "model": "blog.bookinfo",
+  "pk": 10,
+  "fields": {
+    "title": "러플 튜토리얼로 배우는 Python",
+    "price": 4900,
+    "author": "이호준, 배희성, 양지혜, 박소영, 김수연, 정민준"
+  }
+},
+{
+  "model": "blog.bookinfo",
+  "pk": 11,
+  "fields": {
+    "title": "인공지능을 활용한 업무자동화 With Google Developers Group JEJU",
+    "price": 0,
+    "author": "이호준, 이준호, 현암, 윤현담, 김루비, 이동민, 유승엽, 박서윤, 김채린, 한승협, 안상우, 장성원, 전진환, 강민성, 조민구, 전창삼"
+  }
+}
+]
+
